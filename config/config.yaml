@@ -1,7 +1,7 @@
 camera:
   quality: 0.9                  # Quality of the image (0.0 - 0.9)
   fps: 30                       # Max 30 FPS
-  facingMode: "environment"     # Options: "environment" (back camera) or "user" (front camera)
+  facingMode: "user"     # Options: "environment" (back camera) or "user" (front camera)
 
 imu:
   sample_rate: 30               # Data sampling rate in Hz (recommended: 10-60Hz)
