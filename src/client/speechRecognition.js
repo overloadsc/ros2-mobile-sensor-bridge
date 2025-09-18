@@ -2,11 +2,12 @@ class SpeechRecognitionManager {
     constructor() {
         this.speechRecognitionStarted = false;
         this.recognizer = null;
-        this.keyword = "robot"; // Default value that will be updated from config
+        this.keyword = "apple"; // Default value that will be updated from config
         this.finalTranscripts = "";
         this.transcriptionTimer = null;
         this.logDiv = document.getElementById('transcription-log');
         console.log('Speech Recognition Manager initialized');
+        console.log('Speech Recognition API supported:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
         
         // Load the keyword from config file
         this.loadConfigFromServer();
@@ -110,41 +111,25 @@ class SpeechRecognitionManager {
                     const transcript = event.results[i][0].transcript;
                     
                     if(event.results[i].isFinal && 
-                       (transcript.toLowerCase().includes(this.keyword) || 
-                        this.finalTranscripts.toLowerCase().includes(this.keyword))) {
-                        
+                        (transcript.toLowerCase().includes(this.keyword))) {
                         console.log('Raw transcript:', transcript);
-                        this.finalTranscripts += transcript;
                         
-                        if (this.transcriptionTimer) {
-                            clearTimeout(this.transcriptionTimer);
-                        }
-                        
-                        this.transcriptionTimer = setTimeout(() => {
-                            const split_arr = this.finalTranscripts.split(" ");
-                            const key_idx = split_arr.findIndex(
-                                (word) => word.toLowerCase() === this.keyword
-                            );
-                            const prompt_arr = split_arr.splice(key_idx + 1);
-                            const prompt = prompt_arr.join(" ");
-
-                            if (ws && ws.readyState === WebSocket.OPEN) {
-                                const now = Date.now();
-                                ws.send(JSON.stringify({ 
-                                    header: {
-                                        stamp: {
-                                            sec: Math.floor(now / 1000),
-                                            nanosec: (now % 1000) * 1000000
-                                        },
-                                        frame_id: 'microphone_frame'
+                        // 直接使用完整的识别文本
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            const now = Date.now();
+                            ws.send(JSON.stringify({ 
+                                header: {
+                                    stamp: {
+                                        sec: Math.floor(now / 1000),
+                                        nanosec: (now % 1000) * 1000000
                                     },
-                                    transcription: prompt 
-                                }));
-                                console.log('Sent transcribed prompt:', prompt);
-                                this.logTranscription(prompt);
-                            }
-                            this.finalTranscripts = "";
-                        }, 2000);
+                                    frame_id: 'microphone_frame'
+                                },
+                                transcription: transcript  // 直接使用原始识别文本
+                            }));
+                            console.log('Sent full transcript:', transcript);
+                            this.logTranscription(transcript);
+                        }
                     }
                 }
             };
