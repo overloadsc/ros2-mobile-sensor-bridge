@@ -7,7 +7,6 @@ class SpeechRecognitionManager {
         this.transcriptionTimer = null;
         this.logDiv = document.getElementById('transcription-log');
         console.log('Speech Recognition Manager initialized');
-        console.log('Speech Recognition API supported:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
         
         // Load the keyword from config file
         this.loadConfigFromServer();
