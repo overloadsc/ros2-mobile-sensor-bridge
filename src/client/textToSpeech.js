@@ -198,8 +198,13 @@ class TextToSpeech {
                     if (!this.selectedVoice) {
                         // No preference or preferred voice not found, use default English selection
                         console.log('Using fallback voice selection...');
-                        this.selectedVoice = this.voices.find(voice => voice.lang === 'en-US') || 
-                                           this.voices.find(voice => voice.lang.startsWith('en')) || 
+                        // this.selectedVoice = this.voices.find(voice => voice.lang === 'en-US') || 
+                        //                    this.voices.find(voice => voice.lang.startsWith('en')) || 
+                        //                    this.voices[0];
+                        this.selectedVoice = this.voices.find(voice => voice.lang === 'zh-CN') ||
+                                           this.voices.find(voice => voice.lang.startsWith('zh')) ||
+                                           this.voices.find(voice => voice.lang === 'en-US') ||
+                                           this.voices.find(voice => voice.lang.startsWith('en')) ||
                                            this.voices[0];
                     }
                     
@@ -318,7 +323,10 @@ class TextToSpeech {
             utterance.voice = this.selectedVoice;
         } else {
             // Fallback if no voice was selected during initialization
-            utterance.voice = this.voices.find(voice => voice.lang.startsWith('en')) || this.voices[0];
+            // utterance.voice = this.voices.find(voice => voice.lang.startsWith('en')) || this.voices[0];
+            utterance.voice = this.voices.find(voice => voice.lang.startsWith('zh')) ||
+            this.voices.find(voice => voice.lang.startsWith('en')) ||
+            this.voices[0];
             // Store this voice for future use
             this.selectedVoice = utterance.voice;
         }
@@ -495,6 +503,8 @@ class TextToSpeech {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
         const wsUrl = `${protocol}//${host}/tts`;
+        console.error("=== TTS WebSocket URL 生成结果 ===", wsUrl); 
+        console.log(`Connecting to WebSocket at ${wsUrl}`);
         
         console.log(`Connecting to WebSocket at ${wsUrl}`);
         
