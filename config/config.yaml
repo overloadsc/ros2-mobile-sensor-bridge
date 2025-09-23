@@ -17,7 +17,7 @@ audio:
     # voice_preference: ""      # TODO
 
 microphone:
-  wake_word: "robot"
+  wake_word: "苹果"
 
 # Controls debug message logging
 debug:
