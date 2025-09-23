@@ -2,7 +2,7 @@ class SpeechRecognitionManager {
     constructor() {
         this.speechRecognitionStarted = false;
         this.recognizer = null;
-        this.keyword = "apple"; // Default value that will be updated from config
+        this.keyword = "苹果"; // Default value that will be updated from config
         this.finalTranscripts = "";
         this.transcriptionTimer = null;
         this.logDiv = document.getElementById('transcription-log');
@@ -86,7 +86,7 @@ class SpeechRecognitionManager {
     async startSpeechRecognition(ws, isSessionActive) {
         if (this.speechRecognitionStarted || !isSessionActive) return;
         
-        if (!("webkitSpeechRecognition" in window)) {
+        if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
             throw new Error('Speech Recognition API not supported');
         }
 
@@ -96,10 +96,13 @@ class SpeechRecognitionManager {
                 await this.ensureAudioContextForIOS();
             }
             
-            this.recognizer = new webkitSpeechRecognition();
+            //this.recognizer = new webkitSpeechRecognition();
+            this.recognizer = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognizer = new this.recognizer();
             this.recognizer.continuous = true;
             this.recognizer.interimResults = false;
-            this.recognizer.lang = "en-US";
+            //this.recognizer.lang = "en-US";
+            this.recognizer.lang = "zh-CN";
 
             this.recognizer.onstart = () => {
                 console.log('Speech recognition started');
@@ -109,8 +112,7 @@ class SpeechRecognitionManager {
                 for(let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     
-                    if(event.results[i].isFinal && 
-                        (transcript.toLowerCase().includes(this.keyword))) {
+                    if(event.results[i].isFinal && transcript.includes(this.keyword)) {
                         console.log('Raw transcript:', transcript);
                         
                         // 直接使用完整的识别文本
