@@ -16,12 +16,12 @@ class TextToSpeech {
         // Track the last spoken messages with timestamps to prevent duplicates
         this.lastSpokenMessages = new Map();
         
-        // Default TTS parameters
+        // Default TTS parameters - 修复语音名称中的空格问题
         this.ttsParams = {
             rate: 1.0,
             pitch: 1.0,
             volume: 1.0,
-            voice_preference: ""
+            voice_preference: "婷婷 (zh-CN)" // 移除了开头的空格
         };
         
         // Initialize when created - but not immediately on iOS to avoid premature audio setup
@@ -134,7 +134,7 @@ class TextToSpeech {
                     rate: parseFloat(config.audio.tts.rate) || 1.0,
                     pitch: parseFloat(config.audio.tts.pitch) || 1.0,
                     volume: parseFloat(config.audio.tts.volume) || 1.0,
-                    voice_preference: config.audio.tts.voice_preference || ""
+                    voice_preference: (config.audio.tts.voice_preference || "婷婷 (zh-CN)").trim() // 去除空格
                 };
             }
             
@@ -161,60 +161,7 @@ class TextToSpeech {
                     console.log('Available voices:', this.voices.map(v => `${v.name} (${v.lang})`));
                     
                     // Pre-select and store a consistent voice
-                    // Try to find the preferred voice if specified
-                    if (this.ttsParams.voice_preference && this.ttsParams.voice_preference.trim() !== "") {
-                        console.log(`Looking for voice preference: "${this.ttsParams.voice_preference}"`);
-                        
-                        // Try exact match first
-                        this.selectedVoice = this.voices.find(voice => 
-                            voice.name === this.ttsParams.voice_preference
-                        );
-                        
-                        // If not found, try partial match (case-insensitive)
-                        if (!this.selectedVoice) {
-                            this.selectedVoice = this.voices.find(voice => 
-                                voice.name.toLowerCase().includes(this.ttsParams.voice_preference.toLowerCase()) || 
-                                voice.voiceURI.toLowerCase().includes(this.ttsParams.voice_preference.toLowerCase())
-                            );
-                        }
-                        
-                        // If still not found, try common US English patterns
-                        if (!this.selectedVoice && this.ttsParams.voice_preference.toLowerCase().includes('us english')) {
-                            this.selectedVoice = this.voices.find(voice => 
-                                voice.lang === 'en-US' && 
-                                (voice.name.toLowerCase().includes('us') || 
-                                 voice.name.toLowerCase().includes('english') ||
-                                 voice.name.toLowerCase().includes('america'))
-                            );
-                        }
-                        
-                        if (this.selectedVoice) {
-                            console.log(`Found preferred voice: ${this.selectedVoice.name} (${this.selectedVoice.lang})`);
-                        } else {
-                            console.warn(`Preferred voice "${this.ttsParams.voice_preference}" not found`);
-                        }
-                    }
-                    
-                    if (!this.selectedVoice) {
-                        // No preference or preferred voice not found, use default English selection
-                        console.log('Using fallback voice selection...');
-                        // this.selectedVoice = this.voices.find(voice => voice.lang === 'en-US') || 
-                        //                    this.voices.find(voice => voice.lang.startsWith('en')) || 
-                        //                    this.voices[0];
-                        this.selectedVoice = this.voices.find(voice => voice.lang === 'zh-CN') ||
-                                           this.voices.find(voice => voice.lang.startsWith('zh')) ||
-                                           this.voices.find(voice => voice.lang === 'en-US') ||
-                                           this.voices.find(voice => voice.lang.startsWith('en')) ||
-                                           this.voices[0];
-                    }
-                    
-                    console.log(`Selected voice: ${this.selectedVoice?.name || 'default'} (${this.selectedVoice?.lang || 'unknown'})`);
-                    
-                    if (this.isIOSDevice()) {
-                        console.log("iOS voices available:");
-                        this.voices.filter(v => v.lang.startsWith('en')).forEach((v, i) => 
-                            console.log(`${i+1}. ${v.name} (${v.lang})`));
-                    }
+                    this.selectVoice();
                     
                     resolve();
                 } else {
@@ -233,6 +180,96 @@ class TextToSpeech {
                 };
             }
         });
+    }
+
+    // 独立的语音选择方法，提高精确度
+    selectVoice() {
+        this.selectedVoice = null;
+        
+        // 如果有语音偏好设置
+        if (this.ttsParams.voice_preference && this.ttsParams.voice_preference.trim() !== "") {
+            const preference = this.ttsParams.voice_preference.trim();
+            console.log(`Looking for voice preference: "${preference}"`);
+            
+            // 1. 尝试精确匹配语音名称
+            this.selectedVoice = this.voices.find(voice => 
+                voice.name === preference
+            );
+            
+            if (this.selectedVoice) {
+                console.log(`Found exact voice match: ${this.selectedVoice.name} (${this.selectedVoice.lang})`);
+                return;
+            }
+            
+            // 2. 尝试精确匹配 voiceURI
+            this.selectedVoice = this.voices.find(voice => 
+                voice.voiceURI === preference
+            );
+            
+            if (this.selectedVoice) {
+                console.log(`Found exact voiceURI match: ${this.selectedVoice.name} (${this.selectedVoice.lang})`);
+                return;
+            }
+            
+            // 3. 尝试部分匹配（不区分大小写）
+            const lowerPreference = preference.toLowerCase();
+            this.selectedVoice = this.voices.find(voice => 
+                voice.name.toLowerCase().includes(lowerPreference) || 
+                voice.voiceURI.toLowerCase().includes(lowerPreference)
+            );
+            
+            if (this.selectedVoice) {
+                console.log(`Found partial voice match: ${this.selectedVoice.name} (${this.selectedVoice.lang})`);
+                return;
+            }
+            
+            // 4. 专门针对中文语音的匹配
+            if (lowerPreference.includes('婷婷') || lowerPreference.includes('zh-cn')) {
+                this.selectedVoice = this.voices.find(voice => 
+                    voice.lang === 'zh-CN' && 
+                    (voice.name.toLowerCase().includes('婷婷') || 
+                     voice.name.toLowerCase().includes('奶奶') ||
+                     voice.voiceURI.toLowerCase().includes('婷婷'))
+                );
+                
+                if (this.selectedVoice) {
+                    console.log(`Found Chinese 婷婷 voice: ${this.selectedVoice.name} (${this.selectedVoice.lang})`);
+                    return;
+                }
+            }
+            
+            console.warn(`Preferred voice "${preference}" not found`);
+        }
+        
+        // 如果没找到偏好语音，使用默认选择逻辑
+        if (!this.selectedVoice) {
+            console.log('Using fallback voice selection...');
+            
+            // 优先选择中文语音
+            this.selectedVoice = this.voices.find(voice => 
+                voice.lang === 'zh-CN' && voice.name.toLowerCase().includes('婷婷')
+            ) ||
+            this.voices.find(voice => voice.lang === 'zh-CN') ||
+            this.voices.find(voice => voice.lang.startsWith('zh')) ||
+            this.voices.find(voice => voice.lang === 'en-US') ||
+            this.voices.find(voice => voice.lang.startsWith('en')) ||
+            this.voices[0];
+        }
+        
+        if (this.selectedVoice) {
+            console.log(`Selected voice: ${this.selectedVoice.name} (${this.selectedVoice.lang})`);
+            console.log(`Voice URI: ${this.selectedVoice.voiceURI}`);
+        } else {
+            console.error('No voice could be selected!');
+        }
+        
+        // 在iOS上显示可用的中文语音
+        if (this.isIOSDevice()) {
+            console.log("Available Chinese voices on iOS:");
+            this.voices.filter(v => v.lang.startsWith('zh')).forEach((v, i) => 
+                console.log(`${i+1}. ${v.name} (${v.lang}) - URI: ${v.voiceURI}`)
+            );
+        }
     }
 
     // Check if the same message was spoken recently (within the debounce time)
@@ -318,29 +355,33 @@ class TextToSpeech {
 
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // Always use the consistently selected voice
+        // 确保使用正确选择的语音
         if (this.selectedVoice) {
             utterance.voice = this.selectedVoice;
+            console.log(`Using selected voice: ${this.selectedVoice.name} (${this.selectedVoice.lang})`);
         } else {
-            // Fallback if no voice was selected during initialization
-            // utterance.voice = this.voices.find(voice => voice.lang.startsWith('en')) || this.voices[0];
-            utterance.voice = this.voices.find(voice => voice.lang.startsWith('zh')) ||
-            this.voices.find(voice => voice.lang.startsWith('en')) ||
-            this.voices[0];
-            // Store this voice for future use
-            this.selectedVoice = utterance.voice;
+            console.warn("No selected voice available, using system default");
         }
         
         // Apply speech parameters from config
         utterance.rate = this.ttsParams.rate;
         utterance.pitch = this.ttsParams.pitch;
         utterance.volume = this.ttsParams.volume;
-        
-        // Log the voice and parameters being used
-        console.log(`TTS using voice: ${utterance.voice?.name || 'default'}, rate: ${utterance.rate}, pitch: ${utterance.pitch}, volume: ${utterance.volume}`);
+
+        console.log("TTS parameters:", {
+            voice_preference: this.ttsParams.voice_preference,
+            selectedVoice: this.selectedVoice?.name,
+            rate: utterance.rate,
+            pitch: utterance.pitch,
+            volume: utterance.volume
+        });
         
         // Set up event handlers for speech
         this.isSpeaking = true;
+        
+        utterance.onstart = () => {
+            console.log(`Started speaking with voice: ${utterance.voice?.name || 'default'}`);
+        };
         
         utterance.onend = () => {
             this.isSpeaking = false;
@@ -656,7 +697,7 @@ class TextToSpeech {
             // Reset flags
             setTimeout(() => {
                 if (this.hasSpokenDisconnect) {
-                    this.hasSpokenDisconnect = false;
+                    this.hasSpokenDisconnected = false;
                 }
             }, 1000);
         }

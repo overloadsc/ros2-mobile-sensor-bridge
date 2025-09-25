@@ -14,7 +14,7 @@ audio:
     rate: 1.0                   # Speech rate: 0.1 (slow) to 10.0 (fast)
     pitch: 1.0                  # Speech pitch: 0.0 (low) to 2.0 (high)
     volume: 1.0                 # Speech volume: 0.0 (silent) to 1.0 (full volume)
-    # voice_preference: ""      # TODO
+    voice_preference: "Grandma (zh-CN)"      # TODO
 
 microphone:
   wake_word: "苹果"
